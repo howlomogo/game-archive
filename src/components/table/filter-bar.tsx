@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import { useQuery } from "@apollo/client/react";
 import { GET_PLATFORMS } from "@/graphql/queries";
 import { Search, SlidersHorizontal, Check } from "lucide-react";
@@ -13,26 +13,26 @@ interface GetPlatformsData {
   }[];
 }
 
-// Explicitly tell TypeScript that we expect these three functions/values from the parent DataTable
 interface FilterBarProps {
-  onSearchSubmit: (value: string) => void;
-  onPlatformToggle: (ids: string[]) => void;
+  onSearchSubmit: (searchText: string, platformIds: string[]) => void;
   activePlatformIds: string[];
 }
 
-export function FilterBar({ onSearchSubmit, onPlatformToggle, activePlatformIds }: FilterBarProps) {
-  // Local input changes instantly on keystroke without lag or network fires
+export function FilterBar({ onSearchSubmit, activePlatformIds }: FilterBarProps) {
   const [inputValue, setInputValue] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
+  // 🚨 STAGED STATE: Holds the chosen systems locally without firing network events
+  const [stagedPlatforms, setStagedPlatforms] = useState<string[]>(activePlatformIds);
+
   const { data, loading } = useQuery<GetPlatformsData>(GET_PLATFORMS);
   const platforms = data?.platforms || [];
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    onSearchSubmit(inputValue.trim()); // ◄ Calls the parent function only on form submit
-  };
+  // Reset local checkboxes if the master table parameters update independently
+  useEffect(() => {
+    setStagedPlatforms(activePlatformIds);
+  }, [activePlatformIds]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -44,20 +44,26 @@ export function FilterBar({ onSearchSubmit, onPlatformToggle, activePlatformIds 
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // 🚨 FORM SUBMISSION HANDLER: Bundles both variables up to the parent layout
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSearchSubmit(inputValue.trim(), stagedPlatforms);
+  };
+
   const togglePlatform = (id: string) => {
-    let updated = [...activePlatformIds];
+    let updated = [...stagedPlatforms];
     if (updated.includes(id)) {
       updated = updated.filter((pId) => pId !== id);
     } else {
       updated.push(id);
     }
-    onPlatformToggle(updated); // ◄ Calls the parent function when a platform shifts
+    setStagedPlatforms(updated); // Updates checkboxes instantly on screen without hitting the API
   };
 
   return (
     <div className="flex flex-col sm:flex-row gap-4 w-full bg-slate-900 p-4 rounded-xl border border-slate-800 shadow-xl">
       
-      {/* Search Input Box wrapped inside a proper HTML Form context */}
+      {/* Primary Input Box Form Container */}
       <form onSubmit={handleSubmit} className="flex-1 flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
@@ -69,6 +75,8 @@ export function FilterBar({ onSearchSubmit, onPlatformToggle, activePlatformIds 
             className="w-full bg-slate-950 border border-slate-800 rounded-lg pl-10 pr-4 py-2 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 focus:ring-1 focus:ring-indigo-500 transition"
           />
         </div>
+        
+        {/* The single operational action anchor for both inputs */}
         <button
           type="submit"
           className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-md transition cursor-pointer"
@@ -77,7 +85,7 @@ export function FilterBar({ onSearchSubmit, onPlatformToggle, activePlatformIds 
         </button>
       </form>
 
-      {/* Platform Filter Dropdown */}
+      {/* Platform Filter Dropdown Panel Selector */}
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setIsDropdownOpen(!isDropdownOpen)}
@@ -86,9 +94,9 @@ export function FilterBar({ onSearchSubmit, onPlatformToggle, activePlatformIds 
           <span className="flex items-center gap-2 text-slate-300">
             <SlidersHorizontal className="h-4 w-4" />
             Platforms
-            {activePlatformIds.length > 0 && (
+            {stagedPlatforms.length > 0 && (
               <span className="bg-indigo-600 text-white text-xs px-2 py-0.5 rounded-full font-bold">
-                {activePlatformIds.length}
+                {stagedPlatforms.length}
               </span>
             )}
           </span>
@@ -102,7 +110,7 @@ export function FilterBar({ onSearchSubmit, onPlatformToggle, activePlatformIds 
               <div className="text-xs text-slate-500 p-3 text-center">No platforms found.</div>
             ) : (
               platforms.map((platform) => {
-                const isSelected = activePlatformIds.includes(platform.id);
+                const isSelected = stagedPlatforms.includes(platform.id);
                 return (
                   <button
                     key={platform.id}
