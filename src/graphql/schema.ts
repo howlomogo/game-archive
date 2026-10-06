@@ -18,7 +18,8 @@ export const typeDefs = gql`
     title: String!
     releaseYear: Int
     summary: String
-    coverUrl: String
+    coverUrlSmall: String
+    coverUrlBig: String
     rating: Float
     platforms: [Platform!]!
     companies: [Company!]!

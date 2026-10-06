@@ -1,59 +1,62 @@
-interface TwitchAuthResponse {
-  access_token: string;
-  expires_in: number;
-  token_type: string;
-}
-
-// 1. Fetch a fresh OAuth Access Token from Twitch
 async function getTwitchAccessToken(): Promise<string> {
-  const clientId = process.env.TWITCH_CLIENT_ID;
+  const clientId = process.env.TWITCH_CLIENT_ID || "z34asrbs590p7mi3155jt5tdcb1e4a";
   const clientSecret = process.env.TWITCH_CLIENT_SECRET;
 
   if (!clientId || !clientSecret) {
-    throw new Error("Missing Twitch/IGDB Environment Variables");
+    throw new Error("Missing Twitch credentials inside your .env.local file");
   }
 
-  const authUrl = `https://twitch.tv{clientId}&client_secret=${clientSecret}&grant_type=client_credentials`;
+  const urlEncodedBody = "client_id=" + encodeURIComponent(clientId) + 
+                         "&client_secret=" + encodeURIComponent(clientSecret) + 
+                         "&grant_type=client_credentials";
 
-  const response = await fetch(authUrl, {
+  // 🚨 THE RESOLUTION: 'cache: "no-store"' tells Next.js to bypass the broken disk cache
+  const response = await fetch("https://id.twitch.tv/oauth2/token", {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
-    next: { revalidate: 3600 }, // Cache token for 1 hour to optimize performance
+    headers: {
+      "Content-Type": "application/x-www-form-urlencoded",
+    },
+    body: urlEncodedBody,
+    cache: "no-store", 
   });
 
-  if (!response.ok) {
-    throw new Error("Failed to authenticate with Twitch OAuth");
-  }
+  const responseText = await response.text();
 
-  const data: TwitchAuthResponse = await response.json();
+  if (!response.ok) {
+    console.error("❌ TWITCH API REJECTED AUTH CREDENTIALS:", responseText);
+    throw new Error(`Twitch Auth Failed: ${response.status}`);
+  }
+  
+  const data = JSON.parse(responseText);
   return data.access_token;
 }
 
-// 2. Core function to query the IGDB API
 export async function queryIGDB(endpoint: string, queryBody: string) {
   try {
     const accessToken = await getTwitchAccessToken();
-    const clientId = process.env.TWITCH_CLIENT_ID!;
+    const clientId = process.env.TWITCH_CLIENT_ID || "z34asrbs590p7mi3155jt5tdcb1e4a";
 
-    const response = await fetch(`https://igdb.com{endpoint}`, {
+    const response = await fetch("https://api.igdb.com/v4/" + endpoint, {
       method: "POST",
       headers: {
         "Client-ID": clientId,
-        Authorization: `Bearer ${accessToken}`,
-        "Content-Type": "text/plain", // IGDB uses a custom string body syntax
+        "Authorization": "Bearer " + accessToken,
+        "Content-Type": "text/plain",
       },
       body: queryBody,
-      next: { revalidate: 60 }, // Cache the results for 60 seconds (ISR style)
+      cache: "no-store", // 🚨 Bypass disk caching on data collections as well
     });
 
+    const resultText = await response.text();
+
     if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`IGDB API Error: ${response.status} - ${errorText}`);
+      console.error(`❌ IGDB DATABASE REJECTED INBOUND QUERY [${endpoint}]:`, resultText);
+      throw new Error(`IGDB Server Error: ${response.status}`);
     }
 
-    return await response.json();
+    return JSON.parse(resultText);
   } catch (error) {
-    console.error("IGDB Fetch Error:", error);
+    console.error(`IGDB Proxy Processing Exception [${endpoint}]:`, error);
     throw error;
   }
 }
