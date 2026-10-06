@@ -31,6 +31,7 @@ export const typeDefs = gql`
     hasPreviousPage: Boolean!
     startCursor: String
     endCursor: String
+    offset: Int!
   }
 
   type GameEdge {

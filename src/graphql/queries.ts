@@ -30,6 +30,7 @@ export const GET_GAMES = gql`
         hasPreviousPage
         startCursor
         endCursor
+        offset
       }
       totalCount
     }

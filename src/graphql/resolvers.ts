@@ -20,7 +20,7 @@ export const resolvers = {
       // Build out dynamic parameter conditions matching user selections
       let conditions: string[] = [];
       if (args.platformIds && Array.isArray(args.platformIds) && args.platformIds.length > 0) {
-        conditions.push(`platforms = (${args.platformIds.join(",")})`);
+        conditions.push(`platforms = {${args.platformIds.join(",")}}`);
       }
 
       let igdbQuery = `fields name, first_release_date, summary, cover.image_id, platforms.name, platforms.slug, involved_companies.company.name, involved_companies.developer, total_rating; limit ${limit}; offset ${offset};`;
@@ -82,16 +82,23 @@ export const resolvers = {
         };
       });
 
+      // 🚨 UPPER BOUNDARY TRACKER: Establishes a visibility index that always stays ahead of your pagination clicks
+      let dynamicTotal = offset + rawGames.length;
+      if (rawGames.length === limit) {
+        // If the current page is completely full, we know there are at least more records ahead
+        dynamicTotal = offset + limit + 1; 
+      }
+
       return {
         edges,
         pageInfo: {
           hasNextPage: edges.length === limit,
           hasPreviousPage: offset > 0,
-          // Fixed bracket index pointers to avoid the whole-array property crash:
-          startCursor: edges.length > 0 ? edges[0].cursor : null,
+          startCursor: edges.length > 0 ? edges[0].cursor : null, // ◄ FIXED: Safely points to the first cursor node in the array
           endCursor: edges.length > 0 ? edges[edges.length - 1].cursor : null,
+          offset: offset
         },
-        totalCount: 5000
+        totalCount: dynamicTotal
       };
     }
   }
