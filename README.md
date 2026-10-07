@@ -1,115 +1,57 @@
-# 🎮 Video Games Archive Ledger & Data Grid
+# 🎮 Retro Gaming Archive Ledger Dashboard
 
-A high-performance, real-time data grid dashboard exploring historical media records. This project features a robust **GraphQL proxy architecture** built on top of **Next.js** and **Apollo Client**, interfacing directly with the official **Twitch IGDB API**.
-
-## 🚀 Key Architectural Accomplishments
-
-- **Unified Query Compilation Engine**: Overcomes strict syntax restrictions in the legacy IGDB API by programmatically merging full-text case-insensitive fuzzy filtering and complex array containment selectors (`platforms = [...]`) into a single, optimized `where` clause.
-- **Zero-Width Column Grid Isolation**: Features interactive expandable sub-row panels utilizing inset-shadow rings and absolute overlay boundaries, guaranteeing that heavy high-resolution media payloads (`coverUrlBig`) load exclusively on demand with **0px of layout twitching or column shifting**.
-- **Dynamic Upper Boundary Tracking**: Solves the resource-intensive limitations of cursor-based total database counts by rendering performance-optimized open-ended indices (`Showing 21–40 of 40+ results`) until the absolute boundary ceiling is hit, safely avoiding strict API rate-limiting blocks.
-- **Staged Filter State Architecture**: Groups search inputs, multi-select dropdown checklists, and column properties into local components, bundling execution intent together. This protects external endpoints from multi-click round-trip spam and layout flickering.
+A high-performance, responsive gaming archive dashboard built using **Next.js 14 App Router**, **GraphQL (Apollo Client/Server)**, and **Tailwind CSS**. The platform provides global dataset searches, complex column sorting, and seamless paginated navigation pulling data dynamically via an optimized API proxy routing to the Internet Game Database (IGDB).
 
 ---
 
-## 🛠️ Tech Stack & Ecosystem
+## 🏗️ Architecture Design & The Hybrid Memory Pattern
 
-- **Framework**: Next.js 14+ (App Router, Client Control Layer)
-- **Data Transport**: GraphQL (Apollo Client Client-Side, Graphql-Yoga / Next Server-Side Schema)
-- **Styling & UI**: Tailwind CSS, Lucide React Icons
-- **Core API Data Source**: Twitch IGDB API (Games & Platforms catalogs)
+Standard full-text query search implementations on the IGDB API prioritize a rigid text-similarity matrix. This internal routing forcefully locks and suppresses traditional database pagination commands (such as `offset`), which causes public endpoints to serve duplicate elements or freeze when moving across data page windows.
 
----
+To bypass this platform constraint, this application utilizes a **Hybrid Client-Memory Pagination Window Pattern**:
 
-## 📂 Project Structure
+1. **The Server Layer:** When a search criteria or platform check is modified, the backend GraphQL resolver queries a unified, high-performance dataset pool (up to 100 rows) matching your strict column sort constraints directly from the database core.
+2. **The Client Layer:** The React data grid accepts the sorted dataset pool and segments exactly 20 records required for the active view matching the local `pageIndex` pointer using memory slicing (`visibleEdges = gamesEdges.slice(startOffset, endOffset)`).
 
-```text
-src/
-├── app/
-│   ├── layout.tsx         # Root layout context wrappers
-│   └── page.tsx           # Dashboard view canvas container
-├── components/
-│   └── table/
-│       ├── data-table.tsx # Master layout controller state machine
-│       ├── filter-bar.tsx # Staged parameter submission block
-│       └── table-skeleton.tsx # Shimmer placeholder animation layout
-├── graphql/
-│   ├── queries.ts         # Frontend Apollo Client query schemas
-│   ├── resolvers.ts       # Backend IGDB condition string compiler
-│   └── schema.ts          # Central GraphQL type specifications
-└── lib/
-    └── igdb.ts            # Secure server-to-server fetch engine
-```
+This architecture completely decouples pagination from the broken API layer, ensuring **instantaneous page turning with absolutely zero duplicate records or trailing network latency**.
 
 ---
 
-## ⚙️ Data Flow & State Operations Lifecycle
+## 🗂️ Project Component Map
 
-### 1. Client-Side Interaction & Staging
+### 1. `src/graphql/resolvers.ts` (Backend Gateway)
 
-The user checks platform checkboxes or types a search query. The `FilterBar` component holds these changes locally in a `stagedPlatforms` React state array. This prevents premature, resource-heavy API network requests while the user is still clicking.
+Handles structural validation, sanitizes inputs, and handles case-insensitive fuzzy string match logic (`name ~ *""*`). It automatically queries and serves globally ordered game logs straight to the frontend network layer.
 
-### 2. Execution & State Reset
+### 2. `src/components/table/data-table.tsx` (Data Grid Engine)
 
-When the user clicks the **Search** button, the inputs are bundled together and fired up to the parent controller. The parent immediately triggers `setActiveCursor(null)` and `setExpandedRowId(null)`, gracefully clearing page history variables and collapsing open detail cards to pull fresh Page 1 indices.
+The main client-side interface component. It maintains reactive internal states (`pageIndex`, `activeSortBy`, `activeSortOrder`) to control layout adjustments. It handles fixed cell formatting and splits massive record pools cleanly on screen.
 
-### 3. Server-Side AST Translation
+### 3. `src/components/table/filter-bar.tsx` (Interactive Controls)
 
-The compiled query hits the internal NextJS GraphQL server route. The `resolvers.ts` file intercepts the arguments and maps them into an official IGDB script format:
-
-```text
-fields name, cover.image_id, total_rating;
-where total_rating != null & platforms = [4,6,167] & name ~ *"Mario"*;
-sort total_rating desc;
-limit 20;
-offset 0;
-```
-
-### 4. Optimized Payload Streams
-
-The remote server replies with optimized JSON data fragments. The resolver structures these fields into explicit `coverUrlSmall` (t_cover_small) and `coverUrlBig` (t_cover_big) endpoints. The client reads these values via Apollo’s `network-only` fetch policy, rendering the table rows instantly.
+A fully controlled submission component panel. It features boundary click event listeners (`useRef`) to automatically slide close dropdown states, allowing users to toggle search phrases and target systems seamlessly.
 
 ---
 
-## 🚀 Local Development Setup
+## ⚡ Production Layout & Performance Features
 
-### 📋 Prerequisites
+- **Anti-Flicker Layout Grid Enforcements:** The table element incorporates the Tailwind `table-fixed` property paired with explicit pixel width constraints on header elements (`w-20`, `w-36`). This prevents columns from expanding or shrinking based on varying row title string lengths, eliminating layout flickering on page turns.
+- **Smart Text Truncation (`truncate`):** Long game titles and studio records wrap cleanly into an ellipsis constraint. The container appends a native browser hover tooltip (`title={node.title}`) to maintain accessibility without taking up unnecessary screen space.
+- **Apollo Client Network Shielding:** Configured with an aggressive `cache-first` fetch policy. Toggling back and forth between sorting criteria or platform sets the user has already viewed pulls data instantly from the local Apollo Client memory cache, **completely protecting your database wrapper from repetitive HTTP hits**.
+- **Dossier-Grade Expanded Accordion Panels:** Expanding an active row draws an asymmetric, high-end profile card displaying high-resolution artwork (`coverUrlBig`), tabular studio tracking chips, detailed system deployment tags, and formatted synopses.
 
-Ensure you have **Node.js 18+** installed on your machine. You will also need active developer credentials from the [Twitch Developer Portal](https://twitch.tv).
+---
 
-### 1. Clone the repository and install dependencies
+## 🏃 Local Development Quickstart
+
+Ensure you have your environment variables set up in your local configuration files, then execute these commands in your terminal window:
 
 ```bash
-git clone https://github.com
-cd YOUR_REPOSITORY_NAME
+# Install package dependencies
 npm install
-```
 
-### 2. Configure Environment Variables
-
-Create a `.env.local` file in the root directory of your project:
-
-```env
-NEXT_PUBLIC_GRAPHQL_ENDPOINT=http://localhost:3000/api/graphql
-TWITCH_CLIENT_ID=your_twitch_client_id_here
-TWITCH_APP_ACCESS_TOKEN=your_twitch_access_token_here
-```
-
-### 3. Clean and Run the Development Server
-
-Flush out any static asset directories and launch the local pipeline:
-
-```bash
-# On Mac/Linux:
+# Force a clean, un-cached Next.js compilation sweep
 rm -rf .next && npm run dev
-
-# On Windows (PowerShell):
-Remove-Item -Recurse -Force .next; npm run dev
 ```
 
-Open your browser to [http://localhost:3000](http://localhost:3000) to view the running dashboard.
-
----
-
-## 📝 Licence
-
-Distributed under the MIT Licence. See `LICENCE` for more information.
+Open your browser to **`http://localhost:3000`** (preferably in an **Incognito / Private window** to ensure a fresh, un-cached client runtime).

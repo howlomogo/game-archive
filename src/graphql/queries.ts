@@ -1,9 +1,22 @@
 import { gql } from "@apollo/client";
 
-// Query to fetch the list of games for our data grid
 export const GET_GAMES = gql`
-  query GetGames($first: Int, $after: String, $search: String, $platformIds: [ID!]) {
-    games(first: $first, after: $after, search: $search, platformIds: $platformIds) {
+  query GetGames(
+    $first: Int
+    $after: String
+    $search: String
+    $platformIds: [ID!]
+    $sortBy: String
+    $sortOrder: String
+  ) {
+    games(
+      first: $first
+      after: $after
+      search: $search
+      platformIds: $platformIds
+      sortBy: $sortBy
+      sortOrder: $sortOrder
+    ) {
       edges {
         cursor
         node {
@@ -37,7 +50,6 @@ export const GET_GAMES = gql`
   }
 `;
 
-// Query to fetch platforms to populate our filter dropdown
 export const GET_PLATFORMS = gql`
   query GetPlatforms {
     platforms {
