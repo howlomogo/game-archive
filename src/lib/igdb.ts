@@ -10,7 +10,6 @@ async function getTwitchAccessToken(): Promise<string> {
                          "&client_secret=" + encodeURIComponent(clientSecret) + 
                          "&grant_type=client_credentials";
 
-  // 🚨 THE RESOLUTION: 'cache: "no-store"' tells Next.js to bypass the broken disk cache
   const response = await fetch("https://id.twitch.tv/oauth2/token", {
     method: "POST",
     headers: {
@@ -23,7 +22,7 @@ async function getTwitchAccessToken(): Promise<string> {
   const responseText = await response.text();
 
   if (!response.ok) {
-    console.error("❌ TWITCH API REJECTED AUTH CREDENTIALS:", responseText);
+    console.error("TWITCH API REJECTED AUTH CREDENTIALS:", responseText);
     throw new Error(`Twitch Auth Failed: ${response.status}`);
   }
   
@@ -44,13 +43,13 @@ export async function queryIGDB(endpoint: string, queryBody: string) {
         "Content-Type": "text/plain",
       },
       body: queryBody,
-      cache: "no-store", // 🚨 Bypass disk caching on data collections as well
+      cache: "no-store",
     });
 
     const resultText = await response.text();
 
     if (!response.ok) {
-      console.error(`❌ IGDB DATABASE REJECTED INBOUND QUERY [${endpoint}]:`, resultText);
+      console.error(`IGDB DATABASE REJECTED INBOUND QUERY [${endpoint}]:`, resultText);
       throw new Error(`IGDB Server Error: ${response.status}`);
     }
 

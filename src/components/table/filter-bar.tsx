@@ -24,7 +24,6 @@ interface FilterBarProps {
 export function FilterBar({ activePlatformIds, initialSortBy, initialSortOrder, onSearchSubmit }: FilterBarProps) {
   const searchParams = useSearchParams();
 
-  // 🚨 FIXED INPUT INITIALIZATION: Read directly from active URL params on mount
   const [inputValue, setInputValue] = useState(searchParams.get("search") || "");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>(activePlatformIds);
   const [sortBy, setSortBy] = useState(initialSortBy);
@@ -39,7 +38,6 @@ export function FilterBar({ activePlatformIds, initialSortBy, initialSortOrder, 
   const { data, loading } = useQuery<GetPlatformsData>(GET_PLATFORMS);
   const platforms = data?.platforms || [];
 
-  // 🚨 SYNC CONTROL LOOP: Keeps internal UI states synchronized with URL path adjustments
   useEffect(() => {
     setInputValue(searchParams.get("search") || "");
     setSelectedPlatforms(activePlatformIds);
@@ -197,7 +195,6 @@ export function FilterBar({ activePlatformIds, initialSortBy, initialSortOrder, 
             )}
           </div>
 
-          {/* Master Submission Action Trigger */}
           <button
             type="submit"
             className="bg-indigo-600 hover:bg-indigo-700 text-white px-5 py-2 rounded-lg text-sm font-semibold shadow-md transition cursor-pointer"

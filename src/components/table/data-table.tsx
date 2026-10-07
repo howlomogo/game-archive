@@ -5,14 +5,13 @@ import dynamic from "next/dynamic";
 import { useQuery } from "@apollo/client/react";
 import { GET_GAMES } from "@/graphql/queries";
 import { FilterBar } from "./filter-bar";
-import { TableSkeleton } from "./table-skeleton";
+import { TableSkeleton, StandaloneTableSkeleton } from "./table-skeleton";
 import { 
   Star, 
   Calendar, 
   Monitor, 
   Users, 
   ChevronDown, 
-  ChevronUp, 
   ChevronLeft, 
   ChevronRight, 
   ArrowUpDown,
@@ -47,7 +46,6 @@ interface GetGamesVariables {
   sortOrder: string;
 }
 
-// ─── INTERNAL DATA TABLE INTERFACE ENGINE ───
 function DataTableComponent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
@@ -78,7 +76,8 @@ function DataTableComponent() {
   const hasNextPage = gamesEdges.length > endOffset;
   const hasPreviousPage = pageIndex > 0;
 
-  const toggleRow = (id: string) => {
+  const toggleRow = (id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
     setExpandedRowId(expandedRowId === id ? null : id);
   };
 
@@ -102,7 +101,7 @@ function DataTableComponent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 w-full">
+    <div className="flex flex-col gap-6 w-full box-border">
       <FilterBar 
         activePlatformIds={selectedPlatforms}
         initialSortBy={activeSortBy}
@@ -117,7 +116,8 @@ function DataTableComponent() {
         }}
       />
 
-      <div className="w-full overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 shadow-2xl">
+      {/* ─── DESKTOP GRID VIEW (Hidden on Mobile) ─── */}
+      <div className="hidden md:block w-full overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 shadow-2xl">
         <table className="w-full text-left border-collapse min-w-[700px] table-fixed">
           <thead>
             <tr className="border-b border-slate-800 bg-slate-950 text-slate-400 text-xs font-semibold tracking-wider uppercase select-none">
@@ -163,7 +163,7 @@ function DataTableComponent() {
                   <React.Fragment key={node.id}>
                     <tr 
                       className={`hover:bg-slate-950/40 group transition duration-150 cursor-pointer ${isExpanded ? 'bg-slate-950/20' : ''}`}
-                      onClick={() => toggleRow(node.id)}
+                      onClick={(e) => toggleRow(node.id, e)}
                     >
                       <td className="p-4">
                         {node.coverUrlSmall ? (
@@ -204,80 +204,164 @@ function DataTableComponent() {
                         </div>
                       </td>
                       <td className="p-4 text-center">
-                        {isExpanded ? <ChevronUp className="h-4 w-4 text-slate-400" /> : <ChevronDown className="h-4 w-4 text-slate-400" />}
+                        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isExpanded ? "rotate-180" : "rotate-0"}`} />
                       </td>
                     </tr>
 
-                    {isExpanded && (
-                      <tr className="bg-slate-950/50 border-y border-slate-800/80">
-                        <td colSpan={6} className="p-6 md:p-8 relative">
-                          <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.5)]" />
-                          
-                          <div className="flex flex-col md:flex-row gap-8 items-start pl-2">
-                            <div className="w-40 h-56 flex-shrink-0 group relative rounded-xl overflow-hidden border border-slate-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-slate-900 transition duration-300 hover:border-slate-500/80">
-                              {node.coverUrlBig ? (
-                                <img src={node.coverUrlBig} alt={node.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
-                              ) : (
-                                <div className="w-full h-full flex flex-col items-center justify-center text-xs text-slate-500 gap-2 bg-slate-950">
-                                  <Bookmark className="h-6 w-6 text-slate-700" />No Cover
-                                </div>
-                              )}
-                              <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-100" />
-                            </div>
-
-                            <div className="flex-1 flex flex-col gap-4">
-                              <div className="flex flex-col gap-1">
-                                <span className="text-[10px] font-bold text-indigo-400 tracking-widest uppercase font-mono">Archive Entry Node</span>
-                                <h3 className="text-xl font-bold text-slate-50 tracking-tight leading-none">{node.title}</h3>
+                    <tr className="bg-slate-950/50">
+                      <td colSpan={6} className="p-0">
+                        <div className={`grid transition-all duration-200 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                          <div className="overflow-hidden">
+                            <div className="p-6 md:p-8 relative flex flex-col md:flex-row gap-8 items-start pl-8 border-b border-slate-800/80">
+                              <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.5)]" />
+                              <div className="w-40 h-56 flex-shrink-0 group relative rounded-xl overflow-hidden border border-slate-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-slate-900 transition duration-300 hover:border-slate-500/80">
+                                {node.coverUrlBig ? (
+                                  <img src={node.coverUrlBig} alt={node.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
+                                ) : (
+                                  <div className="w-full h-full flex flex-col items-center justify-center text-xs text-slate-500 gap-2 bg-slate-950">
+                                    <Bookmark className="h-6 w-6 text-slate-700" />No Cover
+                                  </div>
+                                )}
+                                <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-100" />
                               </div>
 
-                              <div className="flex flex-wrap gap-2.5 items-center mt-1">
-                                <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400 font-mono shadow-sm">
-                                  <Calendar className="h-3.5 w-3.5 text-slate-500" />
-                                  <span className="text-slate-500">Released:</span>
-                                  <span className="text-slate-300 font-bold">{node.releaseYear || "Unknown"}</span>
+                              <div className="flex-1 flex flex-col gap-4">
+                                <div className="flex flex-col gap-1">
+                                  <span className="text-[10px] font-bold text-indigo-400 tracking-widest uppercase font-mono">Archive Entry Node</span>
+                                  <h3 className="text-xl font-bold text-slate-50 tracking-tight leading-none">{node.title}</h3>
                                 </div>
-                                <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400 shadow-sm">
-                                  <ShieldCheck className="h-3.5 w-3.5 text-indigo-400/80" />
-                                  <span className="text-slate-500 font-mono">Dev:</span>
-                                  <span className="text-slate-200 font-semibold truncate max-w-[140px]" title={developer}>{developer}</span>
+                                <div className="flex flex-wrap gap-2.5 items-center mt-1">
+                                  <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400 font-mono shadow-sm">
+                                    <Calendar className="h-3.5 w-3.5 text-slate-500" />
+                                    <span className="text-slate-500">Released:</span>
+                                    <span className="text-slate-300 font-bold">{node.releaseYear || "Unknown"}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400 shadow-sm">
+                                    <ShieldCheck className="h-3.5 w-3.5 text-indigo-400/80" />
+                                    <span className="text-slate-500 font-mono">Dev:</span>
+                                    <span className="text-slate-200 font-semibold truncate max-w-[140px]" title={developer}>{developer}</span>
+                                  </div>
+                                  <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400 shadow-sm">
+                                    <Landmark className="h-3.5 w-3.5 text-emerald-400/80" />
+                                    <span className="text-slate-500 font-mono">Pub:</span>
+                                    <span className="text-slate-200 font-semibold truncate max-w-[140px]" title={publisher}>{publisher}</span>
+                                  </div>
                                 </div>
-                                <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400 shadow-sm">
-                                  <Landmark className="h-3.5 w-3.5 text-emerald-400/80" />
-                                  <span className="text-slate-500 font-mono">Pub:</span>
-                                  <span className="text-slate-200 font-semibold truncate max-w-[140px]" title={publisher}>{publisher}</span>
+                                <div className="flex flex-col gap-2">
+                                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">System Synopsis</h4>
+                                  <p className="text-sm text-slate-300 leading-relaxed font-normal text-justify max-w-4xl bg-slate-950/20 border border-slate-800/40 p-4 rounded-xl shadow-inner">
+                                    {node.summary || "No secondary narrative summary records matches this system index node."}
+                                  </p>
                                 </div>
-                              </div>
-
-                              <div className="flex flex-col gap-2">
-                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">System Synopsis</h4>
-                                <p className="text-sm text-slate-300 leading-relaxed font-normal text-justify max-w-4xl bg-slate-950/20 border border-slate-800/40 p-4 rounded-xl shadow-inner">
-                                  {node.summary || "No secondary narrative summary records matches this system index node."}
-                                </p>
-                              </div>
-
-                              <div className="flex flex-col gap-2 mt-1">
-                                <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Target Platform Deployment</h4>
-                                <div className="flex flex-wrap gap-1.5 max-w-2xl">
-                                  {node.platforms?.map((p: any) => (
-                                    <span key={p.id} className="text-[11px] font-medium bg-slate-900 text-slate-300 px-2.5 py-1 rounded-md border border-slate-800/60 shadow-sm flex items-center gap-1.5 hover:border-slate-700 transition">
-                                      <div className="h-1 w-1 rounded-full bg-indigo-400" />
-                                      {p.name}
-                                    </span>
-                                  ))}
+                                <div className="flex flex-col gap-2 mt-1">
+                                  <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Target Platform Deployment</h4>
+                                  <div className="flex flex-wrap gap-1.5 max-w-2xl">
+                                    {node.platforms?.map((p: any) => (
+                                      <span key={p.id} className="text-[11px] font-medium bg-slate-900 text-slate-300 px-2.5 py-1 rounded-md border border-slate-800/60 shadow-sm flex items-center gap-1.5 hover:border-slate-700 transition">
+                                        <div className="h-1 w-1 rounded-full bg-indigo-400" />
+                                        {p.name}
+                                      </span>
+                                    ))}
+                                  </div>
                                 </div>
                               </div>
                             </div>
                           </div>
-                        </td>
-                      </tr>
-                    )}
+                        </div>
+                      </td>
+                    </tr>
                   </React.Fragment>
                 );
               })
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* ─── MOBILE CARD REED VIEW (Hidden on Desktop) ─── */}
+      <div className="block md:hidden w-full space-y-4 box-border">
+        {loading && visibleEdges.length === 0 ? (
+          <div className="text-center py-10 text-slate-400 text-sm animate-pulse">Loading archive feed...</div>
+        ) : visibleEdges.length === 0 ? (
+          <div className="bg-slate-900 border border-slate-800 p-8 rounded-xl text-center text-slate-500 text-sm font-medium">
+            No archive entries match the active configurations.
+          </div>
+        ) : (
+          visibleEdges.map(({ node }) => {
+            const developer = node.companies?.find((c) => c.role === "Developer")?.name || "Unknown Dev";
+            const publisher = node.companies?.find((c) => c.role === "Publisher")?.name || "Unknown Pub";
+            const isExpanded = expandedRowId === node.id;
+
+            return (
+              <div key={node.id} className="bg-slate-900 border border-slate-800 rounded-xl overflow-hidden shadow-xl transition-all w-full box-border">
+                <div 
+                  className="p-4 flex items-center justify-between gap-3 cursor-pointer active:bg-slate-950/40 select-none"
+                  onClick={(e) => toggleRow(node.id, e)}
+                >
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {node.coverUrlSmall ? (
+                      <img src={node.coverUrlSmall} alt={node.title} className="h-12 w-9 object-cover rounded shadow bg-slate-950 border border-slate-800 flex-shrink-0" />
+                    ) : (
+                      <div className="h-12 w-9 rounded bg-slate-950 border border-slate-800 flex items-center justify-center text-[10px] text-slate-600 flex-shrink-0 select-none">N/A</div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <h3 className="font-bold text-slate-100 text-sm truncate" title={node.title}>{node.title}</h3>
+                      <p className="text-xs text-slate-500 font-mono mt-0.5 truncate">
+                        {String(node.releaseYear || "Unknown Year")} • {developer}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    {node.rating ? (
+                      <div className="text-[10px] font-bold text-amber-400 bg-slate-950 border border-slate-800 px-1.5 py-0.5 rounded flex items-center gap-0.5">
+                        <Star className="h-3 w-3 fill-amber-400/10" />{node.rating}%
+                      </div>
+                    ) : (
+                      <div className="text-[10px] text-slate-600 font-medium bg-slate-950/40 px-1.5 py-0.5 rounded border border-slate-800/40">Unrated</div>
+                    )}
+                    <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform duration-200 ${isExpanded ? "rotate-180" : "rotate-0"}`} />
+                  </div>
+                </div>
+
+                {/* Mobile Card Expanded Dossier Area with smooth grid animation */}
+                <div className={`grid transition-all duration-200 ease-in-out ${isExpanded ? "grid-rows-[1fr]" : "grid-rows-[0fr]"}`}>
+                  <div className="overflow-hidden">
+                    <div className="p-4 space-y-4 w-full box-border border-t border-slate-800/60 bg-slate-950/30">
+                      <div className="flex gap-4 items-start">
+                        {node.coverUrlBig && (
+                          <img src={node.coverUrlBig} alt={node.title} className="w-24 h-36 object-cover rounded-lg shadow-md border border-slate-700/50 flex-shrink-0" />
+                        )}
+                        <div className="space-y-1.5 text-xs text-slate-400 min-w-0 flex-1 font-mono">
+                          <p className="truncate"><strong className="text-slate-500">Released:</strong> <span className="text-slate-200 font-bold">{node.releaseYear || "Unknown"}</span></p>
+                          <p className="truncate"><strong className="text-slate-500">Dev:</strong> <span className="text-slate-200 font-semibold" title={developer}>{developer}</span></p>
+                          <p className="truncate"><strong className="text-slate-500">Pub:</strong> <span className="text-slate-200 font-semibold" title={publisher}>{publisher}</span></p>
+                        </div>
+                      </div>
+                      
+                      <div className="space-y-1.5">
+                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">System Synopsis</h4>
+                        <p className="text-xs text-slate-300 leading-relaxed bg-slate-950/40 border border-slate-800/50 p-3 rounded-lg text-justify whitespace-pre-wrap break-words">
+                          {node.summary || "No secondary narrative summary records matches this system index node."}
+                        </p>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <h4 className="text-[10px] font-bold text-slate-400 uppercase tracking-wider font-mono">Deployment Targets</h4>
+                        <div className="flex flex-wrap gap-1">
+                          {node.platforms?.map((p) => (
+                            <span key={p.id} className="text-[10px] font-medium bg-slate-900 text-slate-300 px-2 py-0.5 rounded border border-slate-800/80 shadow-sm flex items-center gap-1">
+                              <Monitor className="h-2.5 w-2.5 text-slate-500" />{p.name}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            );
+          })
+        )}
       </div>
 
       {gamesEdges.length > 0 && (() => {
@@ -290,19 +374,19 @@ function DataTableComponent() {
         }
 
         return (
-          <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl shadow-lg mt-2 gap-3 w-full">
-            <div className="text-xs text-slate-400 font-medium font-mono">
+          <div className="flex flex-col sm:flex-row items-center justify-between bg-slate-900 border border-slate-800 px-4 py-3 rounded-xl shadow-lg mt-2 gap-3 w-full box-border">
+            <div className="text-xs text-slate-400 font-medium font-mono text-center sm:text-left">
               Showing {currentStart}–{currentEnd} of {totalCountLabel} results
             </div>
             
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-2 self-center sm:self-auto">
               <button
                 onClick={() => {
                   setPageIndex(Math.max(0, pageIndex - 1));
                   setExpandedRowId(null);
                 }}
                 disabled={!hasPreviousPage || loading}
-                className="flex items-center gap-1 bg-slate-950 border border-slate-200 hover:border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                className="flex items-center gap-1 bg-slate-950 border border-slate-800 hover:border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 Previous
@@ -318,7 +402,7 @@ function DataTableComponent() {
                   setExpandedRowId(null);
                 }}
                 disabled={!hasNextPage || loading}
-                className="flex items-center gap-1 bg-slate-950 border border-slate-200 hover:border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                className="flex items-center gap-1 bg-slate-950 border border-slate-800 hover:border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               >
                 Next
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -331,10 +415,7 @@ function DataTableComponent() {
   );
 }
 
-// ─── DYNAMIC EXPORT WRAPPER ───
-import { StandaloneTableSkeleton } from "./table-skeleton";
-
 export const DataTable = dynamic(() => Promise.resolve(DataTableComponent), {
   ssr: false,
-  loading: () => <StandaloneTableSkeleton /> // ✅ Uses divs instead of <tr> tags!
+  loading: () => <StandaloneTableSkeleton />
 });

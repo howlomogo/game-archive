@@ -31,7 +31,6 @@ export function TableSkeleton() {
   );
 }
 
-// ✨ Safe to render ANYWHERE (inside divs, mains, etc.)
 export function StandaloneTableSkeleton() {
   return (
     <div className="w-full overflow-x-auto rounded-xl border border-slate-800 bg-slate-900 shadow-2xl p-4 animate-pulse space-y-4">

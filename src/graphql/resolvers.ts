@@ -16,7 +16,6 @@ export const resolvers = {
         conditions.push(`name ~ *"${sanitizedSearch}"*`);
       }
 
-      // 🚨 DYNAMIC FIX: Treat platforms as a dynamic collection (Array Contains matching)
       if (args.platformIds && Array.isArray(args.platformIds) && args.platformIds.length > 0) {
         // Using square brackets = [4,6] tells IGDB to look for games that contain ANY of these IDs, 
         // even if they have 10 other platforms attached to their record!
@@ -29,8 +28,8 @@ export const resolvers = {
 
       const direction = args.sortOrder === "asc" ? "asc" : "desc";
 
-      // 🚨 CRITICAL ADJUSTMENT: Pull a unified 100-record set sorted at the API root level.
-      // We will slice this smoothly inside the React tree to stop the IGDB offset bugs from repeating data.
+      // Pull a unified 100-record set sorted at the API root level.
+      // Slice this smoothly inside the React tree to stop the IGDB offset bugs from repeating data.
       let igdbQuery = `fields name, first_release_date, summary, cover.image_id, platforms.name, platforms.slug, involved_companies.company.name, involved_companies.developer, total_rating; limit 100;`;
       igdbQuery += ` where ${conditions.join(" & ")};`;
       igdbQuery += ` sort ${sortField} ${direction};`;
