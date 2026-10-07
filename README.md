@@ -50,7 +50,7 @@ Ensure you have your environment variables set up in your local configuration fi
 # Install package dependencies
 npm install
 
-# Force a clean, un-cached Next.js compilation sweep
+# Force a clean, un-cached Next.js compilation  sweep
 rm -rf .next && npm run dev
 ```
 
