@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import dynamic from "next/dynamic";
 import { useQuery } from "@apollo/client/react";
 import { GET_GAMES } from "@/graphql/queries";
 import { FilterBar } from "./filter-bar";
@@ -46,12 +47,12 @@ interface GetGamesVariables {
   sortOrder: string;
 }
 
-export function DataTable() {
+// ─── INTERNAL DATA TABLE INTERFACE ENGINE ───
+function DataTableComponent() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [expandedRowId, setExpandedRowId] = useState<string | null>(null);
 
-  // Maintain page index in client state memory to bypass the IGDB text-search offset issue
   const [pageIndex, setPageIndex] = useState(0);
   const [activeSortBy, setActiveSortBy] = useState("rating");
   const [activeSortOrder, setActiveSortOrder] = useState("desc");
@@ -69,7 +70,6 @@ export function DataTable() {
 
   const gamesEdges = data?.games?.edges || [];
   
-  // Segment pool to clean 20-row matching slices
   const PAGE_SIZE = 20;
   const startOffset = pageIndex * PAGE_SIZE;
   const endOffset = startOffset + PAGE_SIZE;
@@ -83,7 +83,7 @@ export function DataTable() {
   };
 
   const handleSortChange = (field: string) => {
-    setPageIndex(0); // Reset straight back to page 1 on search criteria changes
+    setPageIndex(0);
     setExpandedRowId(null);
     if (activeSortBy === field) {
       setActiveSortOrder(activeSortOrder === "desc" ? "asc" : "desc");
@@ -121,31 +121,25 @@ export function DataTable() {
         <table className="w-full text-left border-collapse min-w-[700px] table-fixed">
           <thead>
             <tr className="border-b border-slate-800 bg-slate-950 text-slate-400 text-xs font-semibold tracking-wider uppercase select-none">
-              {/* Hard allocations stop columns from layout jumping */}
               <th className="p-4 w-20">Cover</th>
-              
-              {/* Title gets the lion's share of space but stays strictly locked */}
               <th className="p-4 w-auto cursor-pointer hover:bg-slate-900/60 transition text-slate-300" onClick={() => handleSortChange("title")}>
                 <div className="flex items-center gap-1.5">
                   Title & Studio
                   <ArrowUpDown className={`h-3 w-3 ${activeSortBy === "title" ? "text-indigo-400" : "text-slate-600"}`} />
                 </div>
               </th>
-              
               <th className="p-4 w-36 cursor-pointer hover:bg-slate-900/60 transition text-slate-300" onClick={() => handleSortChange("releaseYear")}>
                 <div className="flex items-center gap-1.5">
                   Release Year
                   <ArrowUpDown className={`h-3 w-3 ${activeSortBy === "releaseYear" ? "text-indigo-400" : "text-slate-600"}`} />
                 </div>
               </th>
-              
               <th className="p-4 w-32 cursor-pointer hover:bg-slate-900/60 transition text-slate-300" onClick={() => handleSortChange("rating")}>
                 <div className="flex items-center gap-1.5">
                   Rating
                   <ArrowUpDown className={`h-3 w-3 ${activeSortBy === "rating" ? "text-indigo-400" : "text-slate-600"}`} />
                 </div>
               </th>
-              
               <th className="p-4 w-52">Platforms</th>
               <th className="p-4 w-12"></th>
             </tr>
@@ -179,7 +173,6 @@ export function DataTable() {
                         )}
                       </td>
                       <td className="p-4">
-                        {/* FIX: truncate and max-w lock text string sizes cleanly */}
                         <div className="font-semibold text-slate-100 group-hover:text-indigo-400 transition duration-150 truncate max-w-full" title={node.title}>
                           {node.title}
                         </div>
@@ -215,14 +208,12 @@ export function DataTable() {
                       </td>
                     </tr>
 
-                    {/* UPGRADED MEDIA COMPONENT DOSSIER VIEW */}
                     {isExpanded && (
                       <tr className="bg-slate-950/50 border-y border-slate-800/80">
                         <td colSpan={6} className="p-6 md:p-8 relative">
                           <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-indigo-500 shadow-[0_0_12px_rgba(99,102,241,0.5)]" />
                           
                           <div className="flex flex-col md:flex-row gap-8 items-start pl-2">
-                            {/* Graphic Wrapper Asset */}
                             <div className="w-40 h-56 flex-shrink-0 group relative rounded-xl overflow-hidden border border-slate-700/60 shadow-[0_20px_50px_rgba(0,0,0,0.5)] bg-slate-900 transition duration-300 hover:border-slate-500/80">
                               {node.coverUrlBig ? (
                                 <img src={node.coverUrlBig} alt={node.title} className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105" />
@@ -234,14 +225,12 @@ export function DataTable() {
                               <div className="absolute inset-0 bg-gradient-to-t from-slate-950/60 via-transparent to-transparent opacity-100" />
                             </div>
 
-                            {/* Details Content Shell */}
                             <div className="flex-1 flex flex-col gap-4">
                               <div className="flex flex-col gap-1">
                                 <span className="text-[10px] font-bold text-indigo-400 tracking-widest uppercase font-mono">Archive Entry Node</span>
                                 <h3 className="text-xl font-bold text-slate-50 tracking-tight leading-none">{node.title}</h3>
                               </div>
 
-                              {/* Semantic Meta Data Rows */}
                               <div className="flex flex-wrap gap-2.5 items-center mt-1">
                                 <div className="flex items-center gap-1.5 bg-slate-900 border border-slate-800 px-3 py-1.5 rounded-lg text-xs text-slate-400 font-mono shadow-sm">
                                   <Calendar className="h-3.5 w-3.5 text-slate-500" />
@@ -260,7 +249,6 @@ export function DataTable() {
                                 </div>
                               </div>
 
-                              {/* Synopsis Paragraph Readout */}
                               <div className="flex flex-col gap-2">
                                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">System Synopsis</h4>
                                 <p className="text-sm text-slate-300 leading-relaxed font-normal text-justify max-w-4xl bg-slate-950/20 border border-slate-800/40 p-4 rounded-xl shadow-inner">
@@ -268,7 +256,6 @@ export function DataTable() {
                                 </p>
                               </div>
 
-                              {/* Target Platform Deployment Badges */}
                               <div className="flex flex-col gap-2 mt-1">
                                 <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider font-mono">Target Platform Deployment</h4>
                                 <div className="flex flex-wrap gap-1.5 max-w-2xl">
@@ -315,7 +302,7 @@ export function DataTable() {
                   setExpandedRowId(null);
                 }}
                 disabled={!hasPreviousPage || loading}
-                className="flex items-center gap-1 bg-slate-950 border border-slate-800 hover:border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                className="flex items-center gap-1 bg-slate-950 border border-slate-200 hover:border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               >
                 <ChevronLeft className="h-3.5 w-3.5" />
                 Previous
@@ -331,7 +318,7 @@ export function DataTable() {
                   setExpandedRowId(null);
                 }}
                 disabled={!hasNextPage || loading}
-                className="flex items-center gap-1 bg-slate-950 border border-slate-800 hover:border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
+                className="flex items-center gap-1 bg-slate-950 border border-slate-200 hover:border-slate-700 px-3 py-1.5 rounded-lg text-xs font-medium text-slate-300 disabled:opacity-40 disabled:cursor-not-allowed transition cursor-pointer"
               >
                 Next
                 <ChevronRight className="h-3.5 w-3.5" />
@@ -343,3 +330,11 @@ export function DataTable() {
     </div>
   );
 }
+
+// ─── DYNAMIC EXPORT WRAPPER ───
+import { StandaloneTableSkeleton } from "./table-skeleton";
+
+export const DataTable = dynamic(() => Promise.resolve(DataTableComponent), {
+  ssr: false,
+  loading: () => <StandaloneTableSkeleton /> // ✅ Uses divs instead of <tr> tags!
+});
